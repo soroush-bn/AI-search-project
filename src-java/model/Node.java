@@ -5,6 +5,8 @@ import core.Constants;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import static model.ACTION_TYPE.*;
+
 public class Node {
     public Board board;
     public int sum = 0;
@@ -13,13 +15,15 @@ public class Node {
     private Cell[][] cells;
     private int goalValue;
     private Hashtable<String, Boolean> repeatedStates;
+    private ACTION_TYPE previousAction;
 
-    public Node(Cell currentCell, int currentValue, int goalValue, Board board, Node parent, Hashtable<String, Boolean> repeated) {
+    public Node(Cell currentCell, int currentValue, int goalValue, Board board, Node parent, Hashtable<String, Boolean> repeated, ACTION_TYPE previousAction) {
         this.currentCell = currentCell;
         this.sum = currentValue;
         this.board = board;
         this.cells = board.getCells();
         this.parent = parent;
+        this.previousAction = previousAction;
         this.goalValue = goalValue;
         Hashtable<String, Boolean> hashtableTemp = new Hashtable<String, Boolean>(repeated);
         hashtableTemp.put(this.toString(), true);
@@ -27,53 +31,58 @@ public class Node {
         setGoalValue();
     }
 
-
     public ArrayList<Node> successor() {
         ArrayList<Node> result = new ArrayList<Node>();
+        fetchLeftCell(result);
+        fetchDownCell(result);
+        fetchRightCell(result);
+        fetchUpCell(result);
+        return result;
+    }
+
+    private void fetchRightCell(ArrayList<Node> result) {
         if (canMoveRight()) {
             Cell rightCell = this.cells[this.currentCell.i][this.currentCell.j + 1];
             if (isValidMove(rightCell)) {
                 int calculatedValue = calculate(rightCell);
-                Node rightNode = new Node(rightCell, calculatedValue, goalValue, board, this, repeatedStates);
+                Node rightNode = new Node(rightCell, calculatedValue, goalValue, board, this, repeatedStates, LEFT);
                 result.add(rightNode);
             }
         }
+    }
+
+    private void fetchLeftCell(ArrayList<Node> result) {
         if (canMoveLeft()) {
             Cell leftCell = this.cells[this.currentCell.i][this.currentCell.j - 1];
             if (isValidMove(leftCell)) {
                 int calculatedValue = calculate(leftCell);
-                Node leftNode = new Node(leftCell, calculatedValue, goalValue, board, this, repeatedStates);
+                Node leftNode = new Node(leftCell, calculatedValue, goalValue, board, this, repeatedStates, RIGHT);
                 result.add(leftNode);
             }
         }
+    }
+
+    private void fetchDownCell(ArrayList<Node> result) {
         if (canMoveDown()) {
             Cell downCell = this.cells[this.currentCell.i + 1][this.currentCell.j];
             if (isValidMove(downCell)) {
                 int calculatedValue = calculate(downCell);
-                Node downNode = new Node(downCell, calculatedValue, goalValue, board, this, repeatedStates);
+                Node downNode = new Node(downCell, calculatedValue, goalValue, board, this, repeatedStates, UP);
                 result.add(downNode);
             }
-
         }
+    }
+
+    private void fetchUpCell(ArrayList<Node> result) {
         if (canMoveUp()) {
             Cell upCell = this.cells[this.currentCell.i - 1][this.currentCell.j];
             if (isValidMove(upCell)) {
                 int calculatedValue = calculate(upCell);
-                Node upNode = new Node(upCell, calculatedValue, goalValue, board, this, repeatedStates);
+                Node upNode = new Node(upCell, calculatedValue, goalValue, board, this, repeatedStates, DOWN);
                 result.add(upNode);
             }
         }
-        return result;
     }
-
-    private boolean canEnterGoal(Cell downCell) {
-        if (downCell != Cell.getGoal()) return true;
-        else {
-            return sum >= goalValue;
-        }
-
-    }
-
 
     private int calculate(Cell cell) {
         return switch (cell.getOperationType()) {
@@ -86,37 +95,6 @@ public class Node {
 
     }
 
-    private boolean isWall(Cell cell) {
-        return cell.getOperationType() == OPERATION_TYPE.WALL;
-    }
-
-    private boolean canMoveRight() {
-        return this.currentCell.j < this.board.getRow() - 1;
-    }
-
-    private boolean canMoveLeft() {
-        return this.currentCell.j > 0;
-    }
-
-    private boolean canMoveUp() {
-        return this.currentCell.i > 0;
-    }
-
-    private boolean canMoveDown() {
-        return this.currentCell.i < this.board.getCol() - 1;
-    }
-
-    private Boolean isValidMove(Cell destCell) {
-        return destCell != Cell.getStart() && canEnterGoal(destCell) && !isWall(destCell) && !repeatedStates.containsKey(destCell.toString());
-    }
-
-    public boolean isGoal() {
-        if (currentCell.getOperationType() == OPERATION_TYPE.GOAL) {
-            return sum >= goalValue;
-        }
-        return false;
-    }
-
     public int pathCost() {
         return switch (currentCell.getOperationType()) {
             case MINUS, DECREASE_GOAL -> 1;
@@ -125,10 +103,9 @@ public class Node {
             case POW -> 4;
             default -> 0;
         };
-
     }
 
-    private int heuristic() {
+    public int heuristic() {
         // TODO: 2/16/2022 implement heuristic function
         return 0;
     }
@@ -144,8 +121,8 @@ public class Node {
                 .append("op:")
                 .append(currentCell.op)
                 .append("val:")
-                .append(currentCell.getValue());
-
+                .append(currentCell.getValue()
+                ).append(this.previousAction);
         return hash.toString();
     }
 
@@ -190,6 +167,44 @@ public class Node {
             result += " ";
         }
         return result;
+    }
+
+    private boolean canEnterGoal(Cell downCell) {
+        if (downCell != Cell.getGoal()) return true;
+        else {
+            return sum >= goalValue;
+        }
+    }
+
+    private boolean isWall(Cell cell) {
+        return cell.getOperationType() == OPERATION_TYPE.WALL;
+    }
+
+    private boolean canMoveRight() {
+        return this.currentCell.j < this.board.getRow() - 1;
+    }
+
+    private boolean canMoveLeft() {
+        return this.currentCell.j > 0;
+    }
+
+    private boolean canMoveUp() {
+        return this.currentCell.i > 0;
+    }
+
+    private boolean canMoveDown() {
+        return this.currentCell.i < this.board.getCol() - 1;
+    }
+
+    private Boolean isValidMove(Cell destCell) {
+        return destCell != Cell.getStart() && canEnterGoal(destCell) && !isWall(destCell) && !repeatedStates.containsKey(destCell.toString());
+    }
+
+    public boolean isGoal() {
+        if (currentCell.getOperationType() == OPERATION_TYPE.GOAL) {
+            return sum >= goalValue;
+        }
+        return false;
     }
 
     @Override

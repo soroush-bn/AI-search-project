@@ -11,7 +11,6 @@ public class Board {
         this.row = row;
         this.col = col;
         this.cells = cells;
-
     }
 
     public int getCol() {

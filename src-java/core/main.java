@@ -1,6 +1,7 @@
 package core;
 
 import AI.BFS;
+import model.ACTION_TYPE;
 import model.Board;
 import model.Cell;
 import model.Node;
@@ -11,7 +12,7 @@ import java.util.Scanner;
 public class main {
 
     public static void main(String[] args) {
-        System.out.println(" pls enter rows and columns of your board : \n");
+        System.out.println(" please enter rows and columns of your board : \n");
         Scanner sc = new Scanner(System.in);
         String mn = sc.nextLine();
         int rows = Integer.parseInt(mn.split(" ")[0]);
@@ -28,7 +29,7 @@ public class main {
         Board gameBoard = mapper.createBoard(cells, rows, columns);
         Hashtable<String, Boolean> initHash = new Hashtable<>();
         initHash.put(Cell.getStart().toString(), true);
-        Node start = new Node(Cell.getStart(), Cell.getStart().getValue(), Cell.getGoal().getValue(), gameBoard, null, initHash);
+        Node start = new Node(Cell.getStart(), Cell.getStart().getValue(), Cell.getGoal().getValue(), gameBoard, null, initHash, ACTION_TYPE.RIGHT);
         BFS bfs = new BFS();
         bfs.search(start);
     }
